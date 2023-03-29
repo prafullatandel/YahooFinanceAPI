@@ -19,10 +19,13 @@ namespace YahooFinanceAPI.Controllers
     {
         private readonly IStockRepository _dbStocks;
         private readonly IMapper _mapper;
-        public YahooFinanceAPIController(IStockRepository stockRepository, IMapper mapper)
+        private readonly ILogger<YahooFinanceAPIController> _logger;
+
+        public YahooFinanceAPIController(IStockRepository stockRepository, IMapper mapper, ILogger<YahooFinanceAPIController> logger)
         {
             _dbStocks = stockRepository;
             _mapper = mapper;
+            _logger = logger;
         }
 
         [HttpGet("GetCurrentStockDetails")]
@@ -47,10 +50,11 @@ namespace YahooFinanceAPI.Controllers
                     var responseContent = await dataResponse.Content.ReadAsStringAsync();
 
                     var responseStockData = JsonConvert.DeserializeObject<YahooResponseStockDetails>(responseContent);
-                    var stockDetails = responseStockData?.quoteResponse.result[0];
+                    var stockDetails = responseStockData?.quoteResponse?.result?.Length > 0 ? responseStockData?.quoteResponse?.result[0] : null;
 
                     if(stockDetails == null)
                     {
+                        _logger.LogError($"{stockSymbol} Not found at API end point.");
                         return NotFound();
                     }
 
@@ -68,6 +72,8 @@ namespace YahooFinanceAPI.Controllers
                     stockModel.RegularMarketVolume = stockDetails?.regularMarketVolume;
                     stockModel.RegularMarketChange = stockDetails?.regularMarketChange;
                     stockModel.RegularMarketChangePercent = stockDetails?.regularMarketChangePercent;
+
+                    _logger.LogInformation($" Found {stockSymbol} details. {stockModel.ToString()}");
 
                     return Ok(stockModel);
                 }
@@ -305,11 +311,6 @@ namespace YahooFinanceAPI.Controllers
             return null;
         }
 
-        static long ConvertToUnixTimestamp(string date)
-        {
-            var dateTime = DateTime.Parse(date);
-            return (long)(dateTime.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-        }
     }
 
     

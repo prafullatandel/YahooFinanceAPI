@@ -15,5 +15,10 @@
         public string? RegularMarketVolume { get; set; }
         public string? RegularMarketChange { get; set; }
         public string? RegularMarketChangePercent { get; set; }
+        public override string ToString()
+        {
+            return $"Symbol: {Symbol} LongName : {LongName} Price : {RegularMarketPrice}";
+        }
+
     }
 }
